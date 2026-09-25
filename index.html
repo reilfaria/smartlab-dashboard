@@ -78,14 +78,16 @@
     }
 
     // 3. SELESAIKAN FITUR REALTIME (Listen otomatis dari Supabase)
+    // Supabase Realtime Listener untuk Update Instan di Layar
     supabaseClient
-      .channel('schema-db-changes')
+      .channel('public:sensor_logs')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'sensor_logs' },
         (payload) => {
-          console.log('Data baru diterima!', payload.new);
+          console.log('Log 10-menit baru tersimpan di database:', payload.new);
           updateUI(payload.new);
+          loadData(); // Perbarui tabel riwayat
         }
       )
       .subscribe();
