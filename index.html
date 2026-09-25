@@ -3,97 +3,162 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Smart Lab Environmental Monitor</title>
-  <!-- Library Supabase JS -->
+  <title>Smart Lab Realtime Monitor</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 30px; }
-    .container { max-width: 800px; margin: 0 auto; }
+    .container { max-width: 900px; margin: 0 auto; }
     h1 { text-align: center; color: #1a202c; }
-    .status { text-align: center; color: #718096; margin-bottom: 30px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .status { text-align: center; color: #718096; margin-bottom: 25px; font-weight: 500; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px; margin-bottom: 30px; }
     .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
-    .card h3 { margin: 0; color: #4a5568; font-size: 16px; }
-    .value { font-size: 36px; font-weight: bold; margin: 15px 0 5px 0; color: #2b6cb0; }
+    .card h3 { margin: 0; color: #4a5568; font-size: 14px; letter-spacing: 0.5px; }
+    .value { font-size: 38px; font-weight: bold; margin: 10px 0; color: #2b6cb0; }
     .unit { font-size: 14px; color: #a0aec0; }
-    .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #718096; }
+    .actions { text-align: center; margin-bottom: 30px; }
+    .btn { background: #319795; color: white; border: none; padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; text-decoration: none; display: inline-block; transition: background 0.2s; }
+    .btn:hover { background: #2c7a7b; }
+    table { width: 100%; background: white; border-collapse: collapse; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #edf2f7; }
+    th { background: #edf2f7; color: #4a5568; font-size: 13px; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <h1>🌱 Smart Lab Monitor</h1>
-    <div class="status" id="last-update">Menghubungkan ke Supabase...</div>
+    <h1>🌱 Smart Lab Realtime Monitor</h1>
+    <div class="status" id="last-update">Menghubungkan ke sensor...</div>
 
+    <!-- METRIK REALTIME -->
     <div class="grid">
       <div class="card">
-        <h3>SUHU</h3>
+        <h3>SUHU (REALTIME)</h3>
         <div class="value" id="temp">--</div>
         <div class="unit">°C</div>
       </div>
       <div class="card">
-        <h3>KELEMBABAN</h3>
+        <h3>KELEMBABAN (REALTIME)</h3>
         <div class="value" id="hum">--</div>
         <div class="unit">%</div>
       </div>
       <div class="card">
-        <h3>PARTIKEL DEBU (PM2.5)</h3>
+        <h3>PM2.5 DEBU (REALTIME)</h3>
         <div class="value" id="pm25">--</div>
         <div class="unit">µg/m³</div>
       </div>
     </div>
 
-    <div class="footer">Data diperbarui secara real-time via Supabase & Vercel</div>
+    <!-- TOMBOL DOWNLOAD CSV LOG -->
+    <div class="actions">
+      <button class="btn" onclick="downloadCSVFromSupabase()">📥 Unduh Log CSV (Database 10-Menit)</button>
+    </div>
+
+    <!-- TABEL RIWAYAT LOG 10 MENIT -->
+    <h3>📜 Riwayat Log Terakhir (Database)</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Waktu Log</th>
+          <th>Suhu (°C)</th>
+          <th>Kelembaban (%)</th>
+          <th>PM2.5 (µg/m³)</th>
+        </tr>
+      </thead>
+      <tbody id="log-table">
+        <tr><td colspan="4" style="text-align:center;">Memuat riwayat log...</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <script>
-    // 1. ISI DENGAN URL DAN ANON KEY SUPABASE ANDA
     const SUPABASE_URL = "https://cxvpisumobcriyqrdvil.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dnBpc3Vtb2Jjcml5cXJkdmlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNDg2NjIsImV4cCI6MjEwNTkyNDY2Mn0.cM8ssB_2ldnEZz4FfLK7EG_Clg3NtVKyEase98brFno";
-
+    
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    // Fungsi memperbarui UI
+    // Fungsi update UI Angka
     function updateUI(data) {
       if (!data) return;
       document.getElementById('temp').innerText = data.temperature ?? '--';
       document.getElementById('hum').innerText = data.humidity ?? '--';
       document.getElementById('pm25').innerText = data.pm25 ?? '--';
       
-      const waktu = data.created_at ? new Date(data.created_at).toLocaleString('id-ID') : 'Baru saja';
-      document.getElementById('last-update').innerText = `Terakhir diperbarui: ${waktu}`;
+      const sekarang = new Date().toLocaleTimeString('id-ID');
+      document.getElementById('last-update').innerText = `⚡ Pembacaan Sensor Terakhir: ${sekarang} (Realtime Active)`;
     }
 
-    // 2. Ambil data paling baru saat web dibuka
-    async function fetchLatestData() {
-      const { data, error } = await supabaseClient
-        .from('sensor_logs')
-        .select('*')
-        .order('id', { ascending: false })
-        .limit(1);
+    // Load Data Awal & Tabel Log 10 Menit dari Database
+    async function loadInitialData() {
+      // 1. Tampilkan angka paling baru dari database saat web pertama dibuka
+      const { data: latest } = await supabaseClient.from('sensor_logs').select('*').order('id', { ascending: false }).limit(1);
+      if (latest && latest.length > 0) updateUI(latest[0]);
 
-      if (data && data.length > 0) {
-        updateUI(data[0]);
+      // 2. Isi tabel riwayat
+      refreshTable();
+    }
+
+    async function refreshTable() {
+      const { data: logs } = await supabaseClient.from('sensor_logs').select('*').order('id', { ascending: false }).limit(10);
+      if (logs) {
+        const tbody = document.getElementById('log-table');
+        tbody.innerHTML = logs.map(row => `
+          <tr>
+            <td>${new Date(row.created_at).toLocaleString('id-ID')}</td>
+            <td>${row.temperature ?? '--'}</td>
+            <td>${row.humidity ?? '--'}</td>
+            <td>${row.pm25 ?? '--'}</td>
+          </tr>
+        `).join('');
       }
     }
 
-    // 3. SELESAIKAN FITUR REALTIME (Listen otomatis dari Supabase)
-    // Supabase Realtime Listener untuk Update Instan di Layar
+    // Ekspor CSV dari Database Supabase
+    async function downloadCSVFromSupabase() {
+      const { data, error } = await supabaseClient.from('sensor_logs').select('*').order('created_at', { ascending: true });
+      if (error || !data) { alert('Gagal mengunduh log database.'); return; }
+
+      let csvContent = "data:text/csv;charset=utf-8,Waktu,Suhu_C,Kelembaban_Pct,PM25\n";
+      data.forEach(row => {
+        csvContent += `${new Date(row.created_at).toLocaleString('id-ID')},${row.temperature},${row.humidity},${row.pm25}\n`;
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `smartlab_datalog_${new Date().toISOString().slice(0,10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // ========================================================
+    // LISTENER INSTAN REALTIME (Langsung dari Sensor)
+    // ========================================================
+    
+    // 1. Dengar perubahan DB (Setiap 10 Menit) -> Perbarui Tabel
     supabaseClient
-      .channel('public:sensor_logs')
+      .channel('schema-db-changes')
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'sensor_logs' },
         (payload) => {
-          console.log('Log 10-menit baru tersimpan di database:', payload.new);
-          updateUI(payload.new);
-          loadData(); // Perbarui tabel riwayat
+          console.log('📌 Log 10-menit baru masuk ke DB:', payload.new);
+          refreshTable();
         }
       )
       .subscribe();
 
-    // Jalankan fungsi awal
-    fetchLatestData();
+    // 2. Dengar Broadcast Langsung (Setiap Sensor Berubah) -> Update Angka di Layar
+    supabaseClient
+      .channel('realtime_sensor_room')
+      .on('broadcast', { event: 'sensor_update' }, (payload) => {
+        console.log('⚡ Signal instan diterima dari Raspberry Pi:', payload.payload);
+        updateUI(payload.payload);
+      })
+      .subscribe();
+
+    // Jalankan pemuatan awal
+    loadInitialData();
   </script>
 </body>
 </html>
