@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Lab Environmental Monitor</title>
+  <!-- Library Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f0f2f5; margin: 0; padding: 30px; }
+    .container { max-width: 800px; margin: 0 auto; }
+    h1 { text-align: center; color: #1a202c; }
+    .status { text-align: center; color: #718096; margin-bottom: 30px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+    .card { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); text-align: center; }
+    .card h3 { margin: 0; color: #4a5568; font-size: 16px; }
+    .value { font-size: 36px; font-weight: bold; margin: 15px 0 5px 0; color: #2b6cb0; }
+    .unit { font-size: 14px; color: #a0aec0; }
+    .footer { text-align: center; margin-top: 30px; font-size: 13px; color: #718096; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>🌱 Smart Lab Monitor</h1>
+    <div class="status" id="last-update">Menghubungkan ke Supabase...</div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>SUHU</h3>
+        <div class="value" id="temp">--</div>
+        <div class="unit">°C</div>
+      </div>
+      <div class="card">
+        <h3>KELEMBABAN</h3>
+        <div class="value" id="hum">--</div>
+        <div class="unit">%</div>
+      </div>
+      <div class="card">
+        <h3>PARTIKEL DEBU (PM2.5)</h3>
+        <div class="value" id="pm25">--</div>
+        <div class="unit">µg/m³</div>
+      </div>
+    </div>
+
+    <div class="footer">Data diperbarui secara real-time via Supabase & Vercel</div>
+  </div>
+
+  <script>
+    // 1. ISI DENGAN URL DAN ANON KEY SUPABASE ANDA
+    const SUPABASE_URL = "https://cxvpisumobcriyqrdvil.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN4dnBpc3Vtb2Jjcml5cXJkdmlsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAzNDg2NjIsImV4cCI6MjEwNTkyNDY2Mn0.cM8ssB_2ldnEZz4FfLK7EG_Clg3NtVKyEase98brFno";
+
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Fungsi memperbarui UI
+    function updateUI(data) {
+      if (!data) return;
+      document.getElementById('temp').innerText = data.temperature ?? '--';
+      document.getElementById('hum').innerText = data.humidity ?? '--';
+      document.getElementById('pm25').innerText = data.pm25 ?? '--';
+      
+      const waktu = data.created_at ? new Date(data.created_at).toLocaleString('id-ID') : 'Baru saja';
+      document.getElementById('last-update').innerText = `Terakhir diperbarui: ${waktu}`;
+    }
+
+    // 2. Ambil data paling baru saat web dibuka
+    async function fetchLatestData() {
+      const { data, error } = await supabaseClient
+        .from('sensor_logs')
+        .select('*')
+        .order('id', { ascending: false })
+        .limit(1);
+
+      if (data && data.length > 0) {
+        updateUI(data[0]);
+      }
+    }
+
+    // 3. SELESAIKAN FITUR REALTIME (Listen otomatis dari Supabase)
+    supabaseClient
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'sensor_logs' },
+        (payload) => {
+          console.log('Data baru diterima!', payload.new);
+          updateUI(payload.new);
+        }
+      )
+      .subscribe();
+
+    // Jalankan fungsi awal
+    fetchLatestData();
+  </script>
+</body>
+</html>
