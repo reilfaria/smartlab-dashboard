@@ -465,6 +465,8 @@ function initCharts() {
 }
 
 async function fetchHistoryForCharts() {
+  if (!chartPM || !chartClimate) return; // grafik belum siap (mis. Chart.js gagal load)
+
   const { data, error } = await sb
     .from('sensor_logs')
     .select('recorded_at, pm25, temp_in, temp_out')
@@ -549,12 +551,21 @@ async function downloadCSV() {
   }
 }
 
-/* ---------------- init ---------------- */
-initCharts();
+/* ---------------- init ----------------
+   Urutan sengaja: angka sensor & polling jalan DULUAN, baru grafik.
+   Kalau Chart.js gagal dimuat (mis. CDN diblokir jaringan), itu tidak boleh
+   ikut mematikan pembacaan sensor & status online/offline. */
 fetchLive();
-fetchHistoryForCharts();
 setInterval(fetchLive, POLL_MS);
-setInterval(fetchHistoryForCharts, 60000); // grafik disegarkan tiap 1 menit cukup, karena log tiap 10 menit
+
+try {
+  if (typeof Chart === 'undefined') throw new Error('Chart.js tidak termuat (cek koneksi/CDN)');
+  initCharts();
+  fetchHistoryForCharts();
+  setInterval(fetchHistoryForCharts, 60000); // grafik disegarkan tiap 1 menit, karena log tiap 10 menit
+} catch (e) {
+  console.error('Grafik dimatikan karena Chart.js gagal:', e);
+}
 </script>
 </body>
 </html>
