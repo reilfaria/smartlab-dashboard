@@ -400,7 +400,7 @@ function goToPage(page, { scroll = true } = {}) {
   if (page === 'smartlab') { chartPM && chartPM.resize(); chartClimate && chartClimate.resize(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => goToPage(btn.dataset.page)));
-if (location.hash === '#smartlab') goToPage('smartlab', { scroll: false });
+// Pembukaan lewat #smartlab dipindah ke bagian paling bawah skrip (setelah chartPM dideklarasi).
 
 /* ---------------- helper tampilan ---------------- */
 const $ = id => document.getElementById(id);
@@ -693,6 +693,11 @@ try {
   $('emptyPM').textContent = $('emptyClimate').textContent = 'Grafik tidak dapat dimuat. Periksa koneksi internet lalu muat ulang halaman.';
   $('emptyPM').classList.add('show'); $('emptyClimate').classList.add('show');
 }
+
+/* Buka tab sesuai hash URL. Harus paling akhir: goToPage memakai chartPM/chartClimate
+   yang dideklarasi dengan `let` di atas. Kalau dipanggil sebelum itu, skrip berhenti
+   dengan ReferenceError dan status tersangkut di "Menghubungkan". */
+if (location.hash === '#smartlab') goToPage('smartlab', { scroll: false });
 </script>
 </body>
 </html>
