@@ -1,0 +1,16 @@
+[Unit]
+Description=SmartLab APEL - sensor collector
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/smartlab/raspberry_pi
+EnvironmentFile=/home/pi/smartlab/raspberry_pi/.env
+ExecStart=/usr/bin/python3 /home/pi/smartlab/raspberry_pi/main.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

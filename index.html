@@ -22,6 +22,7 @@
   --blue-wash: #e9ecf9;
   --signal: #1fa9bd;        /* udara / PM2.5 */
   --warm: #c9762f;          /* luar ruang */
+  --gas: #6b52c8;           /* eCO2 / gas */
   --warm-wash: #fbeee0;
   --ok: #23805a;   --ok-wash: #e3f3ea;
   --mid: #98650f;  --mid-wash: #fbf0d6;
@@ -101,7 +102,7 @@ button { font-family: inherit; }
 .fl { fill: none; stroke: #fff; stroke-linecap: round; stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.6s var(--ease) forwards; }
 @keyframes draw { to { stroke-dashoffset: 0; } }
 
-.now-strip { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); display: grid; grid-template-columns: auto repeat(3, 1fr); align-items: center; }
+.now-strip { margin-top: 20px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); display: grid; grid-template-columns: auto repeat(4, 1fr); align-items: center; }
 .now-strip > * { padding: 20px 26px; }
 .now-strip .now-title { font-family: var(--display); font-weight: 700; font-size: 1.05rem; border-right: 1px solid var(--line); }
 .now-strip .now-title small { display: block; font-family: var(--body); font-weight: 500; font-size: .78rem; color: var(--ink-soft); margin-top: 2px; }
@@ -155,6 +156,18 @@ button { font-family: inherit; }
 .scale-ticks { position: relative; height: 18px; margin-top: 8px; font-size: .72rem; color: var(--ink-soft); }
 .scale-ticks span { position: absolute; transform: translateX(-50%); }
 .scale-ticks span:first-child { transform: none; }
+.scale-bar.gas { background: linear-gradient(90deg, var(--ok) 0 25%, #d9a21c 25% 68.75%, var(--bad) 68.75% 100%); }
+
+/* eCO2 */
+.air-status { display: none; margin-top: 8px; font-size: .78rem; font-weight: 600; color: var(--mid); }
+.air-status.show { display: block; }
+.gas-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.gas-cell { border: 1px solid var(--line); border-radius: var(--r-md); padding: 16px 18px; border-left: 4px solid var(--gas); }
+.gas-cell .who { font-size: .8rem; font-weight: 600; color: var(--ink-soft); }
+.gas-cell .val { font-family: var(--display); font-size: 2rem; font-weight: 700; line-height: 1.1; }
+.gas-cell .val small { font-family: var(--body); font-size: .86rem; font-weight: 600; color: var(--ink-soft); margin-left: 3px; }
+.gas-cell .sub { font-size: .76rem; color: var(--ink-soft); min-height: 1.2em; margin-top: 2px; }
+.gas-info { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--line); font-size: .82rem; color: var(--ink-soft); }
 
 /* climate comparison */
 .cmp { display: grid; gap: 14px; }
@@ -176,6 +189,10 @@ button { font-family: inherit; }
 .range button { border: 0; background: transparent; font-weight: 600; font-size: .8rem; color: var(--ink-soft); padding: 6px 14px; border-radius: 999px; cursor: pointer; }
 .range button[aria-pressed="true"] { background: var(--surface); color: var(--blue); box-shadow: 0 1px 3px rgba(16,20,38,.12); }
 .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.charts .wide { grid-column: 1 / -1; }
+/* grid item default min-width:auto bikin canvas Chart.js melebar terus keluar layout */
+.board > *, .charts > *, .about > * { min-width: 0; }
+.chart-wrap canvas { max-width: 100%; }
 .chart-wrap { position: relative; height: 230px; }
 .chart-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; color: var(--ink-soft); font-size: .86rem; padding: 0 20px; }
 .chart-empty.show { display: flex; }
@@ -188,9 +205,10 @@ button { font-family: inherit; }
   .hero-art { padding: 0 20px 20px; }
   .hero-art svg { max-height: 220px; }
   .board, .charts, .about { grid-template-columns: 1fr; }
-  .now-strip { grid-template-columns: 1fr 1fr 1fr; }
+  .now-strip { grid-template-columns: 1fr 1fr; }
   .now-strip .now-title { grid-column: 1 / -1; border-right: 0; border-bottom: 1px solid var(--line); }
-  .now-item:nth-child(2) { border-left: 0; }
+  .now-item:nth-child(2), .now-item:nth-child(4) { border-left: 0; }
+  .now-item:nth-child(n+4) { border-top: 1px solid var(--line); }
 }
 @media (max-width: 560px) {
   .shell { padding: 14px 14px 40px; }
@@ -247,6 +265,7 @@ button { font-family: inherit; }
       <div class="now-strip" aria-label="Kondisi lab saat ini">
         <div class="now-title">Kondisi lab sekarang<small id="nowMeta">Menunggu data</small></div>
         <div class="now-item"><div class="l">PM2.5</div><div class="v num"><span id="now-pm25">—</span><small>µg/m³</small></div></div>
+        <div class="now-item"><div class="l">eCO2</div><div class="v num"><span id="now-eco2">—</span><small>ppm</small></div></div>
         <div class="now-item"><div class="l">Suhu dalam</div><div class="v num"><span id="now-tin">—</span><small>°C</small></div></div>
         <div class="now-item"><div class="l">Kelembapan dalam</div><div class="v num"><span id="now-hin">—</span><small>%RH</small></div></div>
       </div>
@@ -273,7 +292,7 @@ button { font-family: inherit; }
       <div class="sl-head">
         <div>
           <h2>SmartLab</h2>
-          <p>Kualitas udara dan iklim ruang Lab APEL.</p>
+          <p>Kualitas udara, gas, dan iklim ruang Lab APEL.</p>
           <p class="device">Perangkat: <b id="deviceIdLabel">smartlab</b> · <span id="lastSeen">belum ada pembacaan</span></p>
         </div>
         <button class="btn btn-solid" id="csvBtn" onclick="downloadCSV()">
@@ -324,6 +343,36 @@ button { font-family: inherit; }
         </div>
       </div>
 
+      <div class="board">
+        <div class="panel air">
+          <div class="panel-title"><h3>eCO2 di dalam ruang</h3><span>ppm, estimasi</span></div>
+          <div class="air-read">
+            <div class="air-value num" id="val-eco2">—</div>
+            <span class="badge" id="badge-eco2">Belum ada data</span>
+          </div>
+          <p class="air-note" id="eco2-note">Pembacaan pertama akan muncul di sini.</p>
+          <p class="air-status" id="eco2-status"></p>
+          <div class="scale">
+            <div class="scale-bar gas"><div class="scale-pin" id="scalePinCO2"></div></div>
+            <div class="scale-ticks" aria-hidden="true">
+              <span style="left:0">400</span>
+              <span style="left:25%">800</span>
+              <span style="left:68.75%">1500</span>
+              <span style="left:100%;transform:translateX(-100%)">2000+</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title"><h3>Gas dan senyawa organik</h3><span>sensor ENS160</span></div>
+          <div class="gas-stats">
+            <div class="gas-cell"><div class="who">TVOC</div><div class="val num"><span id="val-tvoc">—</span><small>ppb</small></div><div class="sub" id="meta-tvoc"></div></div>
+            <div class="gas-cell"><div class="who">Indeks kualitas udara</div><div class="val num"><span id="val-aqi">—</span><small>/ 5</small></div><div class="sub" id="meta-aqi"></div></div>
+          </div>
+          <p class="gas-info">eCO2 dihitung sensor dari kadar senyawa organik (VOC) di udara, sehingga angkanya berupa perkiraan dan bukan hasil ukur CO2 langsung. Indeks 1 berarti sangat baik dan 5 berarti tidak sehat.</p>
+        </div>
+      </div>
+
       <div class="chart-bar">
         <h3>Riwayat</h3>
         <div class="range" role="group" aria-label="Rentang waktu grafik">
@@ -337,6 +386,10 @@ button { font-family: inherit; }
           <div class="chart-wrap"><canvas id="chartPM" aria-label="Grafik PM2.5" role="img"></canvas><div class="chart-empty" id="emptyPM">Belum ada log untuk ditampilkan.</div></div>
         </div>
         <div class="panel">
+          <div class="panel-title"><h3>eCO2</h3><span>ppm, dicatat tiap 10 menit</span></div>
+          <div class="chart-wrap"><canvas id="chartCO2" aria-label="Grafik eCO2" role="img"></canvas><div class="chart-empty" id="emptyCO2">Belum ada log untuk ditampilkan.</div></div>
+        </div>
+        <div class="panel wide">
           <div class="panel-title"><h3>Suhu</h3><span>°C, dalam dan luar</span></div>
           <div class="chart-wrap"><canvas id="chartClimate" aria-label="Grafik suhu dalam dan luar" role="img"></canvas><div class="chart-empty" id="emptyClimate">Belum ada log untuk ditampilkan.</div></div>
         </div>
@@ -397,7 +450,7 @@ function goToPage(page, { scroll = true } = {}) {
   document.querySelectorAll('.nav-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.page === page)));
   try { history.replaceState(null, '', page === 'home' ? location.pathname + location.search : '#' + page); } catch (_) {}
   if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
-  if (page === 'smartlab') { chartPM && chartPM.resize(); chartClimate && chartClimate.resize(); }
+  if (page === 'smartlab') { chartPM && chartPM.resize(); chartClimate && chartClimate.resize(); chartCO2 && chartCO2.resize(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => goToPage(btn.dataset.page)));
 // Pembukaan lewat #smartlab dipindah ke bagian paling bawah skrip (setelah chartPM dideklarasi).
@@ -413,6 +466,18 @@ function pmInfo(v) {
   if (v <= 15) return { text: 'Baik', cls: 'good', note: 'Udara ruang bersih, aman untuk aktivitas seperti biasa.' };
   if (v <= 35) return { text: 'Sedang', cls: 'moderate', note: 'Masih dapat diterima. Orang yang sensitif sebaiknya tidak berlama-lama di dalam.' };
   return { text: 'Tidak sehat', cls: 'bad', note: 'Debu tinggi. Buka ventilasi atau kurangi waktu di dalam ruang.' };
+}
+function eco2Info(v) {
+  if (v == null) return { text: 'Belum ada data', cls: '', note: 'Sensor gas belum mengirim pembacaan.' };
+  if (v <= 800) return { text: 'Baik', cls: 'good', note: 'Sirkulasi udara baik untuk aktivitas di dalam ruang.' };
+  if (v <= 1500) return { text: 'Sedang', cls: 'moderate', note: 'Udara mulai pengap. Buka pintu atau nyalakan ventilasi.' };
+  return { text: 'Buruk', cls: 'bad', note: 'Udara pengap. Tambah ventilasi atau kurangi jumlah orang di ruang.' };
+}
+const AQI_TXT = ['', 'Sangat baik', 'Baik', 'Sedang', 'Buruk', 'Tidak sehat'];
+const ENS_STATUS_TXT = { 1: 'Sensor sedang pemanasan (±3 menit), angka belum stabil.', 2: 'Masa start-up awal sensor (±1 jam), angka belum stabil.' };
+function pinPositionCO2(v) {                    // posisi pin pada skala 400-2000
+  const pct = (Math.max(400, Math.min(v, 2000)) - 400) / 1600 * 100;
+  return pct + '%';
 }
 function pinPosition(v) {                       // posisi pin pada skala 0-75
   const pct = Math.max(0, Math.min(v, 75)) / 75 * 100;
@@ -507,6 +572,26 @@ async function fetchLive() {
   if (data.pm25 == null) pin.classList.remove('on');
   else { pin.classList.add('on'); pin.style.left = pinPosition(data.pm25); }
 
+  // eCO2, TVOC, AQI (ENS160)
+  const co2 = eco2Info(data.eco2);
+  const co2Text = fmt(data.eco2, 0);
+  $('val-eco2').textContent = co2Text;
+  $('now-eco2').textContent = co2Text;
+  const badgeCO2 = $('badge-eco2');
+  badgeCO2.textContent = co2.text;
+  badgeCO2.className = 'badge ' + co2.cls;
+  $('eco2-note').textContent = co2.note;
+  const stTxt = data.eco2 == null ? '' : (ENS_STATUS_TXT[data.ens_status] || '');
+  $('eco2-status').textContent = stTxt;
+  $('eco2-status').classList.toggle('show', !!stTxt);
+  const pinCO2 = $('scalePinCO2');
+  if (data.eco2 == null) pinCO2.classList.remove('on');
+  else { pinCO2.classList.add('on'); pinCO2.style.left = pinPositionCO2(data.eco2); }
+  $('val-tvoc').textContent = fmt(data.tvoc, 0);
+  $('val-aqi').textContent = fmt(data.aqi, 0);
+  $('meta-tvoc').textContent = data.tvoc == null ? 'Sensor tidak terbaca' : '';
+  $('meta-aqi').textContent = data.aqi == null ? 'Sensor tidak terbaca' : (AQI_TXT[data.aqi] || '');
+
   // suhu & kelembapan
   $('val-tin').textContent = fmt(data.temp_in);
   $('val-hin').textContent = fmt(data.hum_in);
@@ -527,7 +612,7 @@ async function fetchLive() {
 }
 
 /* ---------------- grafik riwayat ---------------- */
-let chartPM, chartClimate;
+let chartPM, chartClimate, chartCO2;
 let historyRows = [];
 let rangePoints = CHART_POINTS;
 
@@ -559,6 +644,11 @@ function initCharts() {
     data: { labels: [], datasets: [{ label: 'PM2.5 (µg/m³)', data: [], borderColor: '#1fa9bd', backgroundColor: 'rgba(31,169,189,.12)', fill: true }] },
     options: { ...base(), scales: { ...base().scales, y: { ...base().scales.y, beginAtZero: true } } }
   });
+  chartCO2 = new Chart($('chartCO2'), {
+    type: 'line',
+    data: { labels: [], datasets: [{ label: 'eCO2 (ppm)', data: [], borderColor: '#6b52c8', backgroundColor: 'rgba(107,82,200,.10)', fill: true }] },
+    options: base()
+  });
   chartClimate = new Chart($('chartClimate'), {
     type: 'line',
     data: {
@@ -573,11 +663,14 @@ function initCharts() {
 }
 
 function renderCharts() {
-  if (!chartPM || !chartClimate) return;
+  if (!chartPM || !chartClimate || !chartCO2) return;
   const rows = historyRows.slice(-rangePoints);
   const empty = rows.length === 0;
   $('emptyPM').classList.toggle('show', empty);
   $('emptyClimate').classList.toggle('show', empty);
+  const noCO2 = !rows.some(r => r.eco2 != null);
+  $('emptyCO2').textContent = empty ? 'Belum ada log untuk ditampilkan.' : 'Belum ada log eCO2. Log tersimpan tiap 10 menit, grafik muncul setelah log pertama.';
+  $('emptyCO2').classList.toggle('show', noCO2);
 
   const short = rows.map(r => new Date(r.recorded_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }));
   const full = rows.map(r => new Date(r.recorded_at).toLocaleString('id-ID', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }));
@@ -586,6 +679,11 @@ function renderCharts() {
   chartPM.data.labels = short;
   chartPM.data.datasets[0].data = rows.map(r => r.pm25);
   chartPM.update('none');
+
+  chartCO2.$full = full;
+  chartCO2.data.labels = short;
+  chartCO2.data.datasets[0].data = rows.map(r => r.eco2 ?? null);
+  chartCO2.update('none');
 
   chartClimate.$full = full;
   chartClimate.data.labels = short;
@@ -598,7 +696,7 @@ async function fetchHistoryForCharts() {
   if (!chartPM || !chartClimate) return; // Chart.js gagal dimuat
   const { data, error } = await sb
     .from('sensor_logs')
-    .select('recorded_at, pm25, temp_in, temp_out')
+    .select('*')   // '*' supaya tetap jalan walau kolom eCO2 belum dimigrasi
     .order('recorded_at', { ascending: false })
     .limit(CHART_POINTS);
   if (error || !data) { console.error(error); return; }
@@ -628,7 +726,7 @@ async function downloadCSV() {
     while (true) {
       const { data, error } = await sb
         .from('sensor_logs')
-        .select('recorded_at, pm25, temp_in, hum_in, temp_out, hum_out')
+        .select('*')
         .order('recorded_at', { ascending: true })
         .range(from, from + PAGE_SIZE - 1);
       if (error) throw error;
@@ -644,7 +742,7 @@ async function downloadCSV() {
       return;
     }
 
-    const header = ['hari', 'tanggal', 'waktu', 'timestamp_iso', 'pm25_ugm3', 'suhu_dalam_c', 'kelembapan_dalam_pct', 'suhu_luar_c', 'kelembapan_luar_pct'];
+    const header = ['hari', 'tanggal', 'waktu', 'timestamp_iso', 'pm25_ugm3', 'eco2_ppm', 'tvoc_ppb', 'aqi', 'suhu_dalam_c', 'kelembapan_dalam_pct', 'suhu_luar_c', 'kelembapan_luar_pct'];
     const rows = [header];
     for (const r of allRows) {
       const d = new Date(r.recorded_at);
@@ -653,7 +751,7 @@ async function downloadCSV() {
         `${pad(d.getDate())}-${pad(d.getMonth() + 1)}-${d.getFullYear()}`,
         `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`,
         r.recorded_at,
-        r.pm25 ?? '', r.temp_in ?? '', r.hum_in ?? '', r.temp_out ?? '', r.hum_out ?? ''
+        r.pm25 ?? '', r.eco2 ?? '', r.tvoc ?? '', r.aqi ?? '', r.temp_in ?? '', r.hum_in ?? '', r.temp_out ?? '', r.hum_out ?? ''
       ]);
     }
 
@@ -690,8 +788,8 @@ try {
   setInterval(fetchHistoryForCharts, 60000); // log tiap 10 menit, grafik cukup disegarkan tiap 1 menit
 } catch (e) {
   console.error('Grafik dimatikan karena Chart.js gagal:', e);
-  $('emptyPM').textContent = $('emptyClimate').textContent = 'Grafik tidak dapat dimuat. Periksa koneksi internet lalu muat ulang halaman.';
-  $('emptyPM').classList.add('show'); $('emptyClimate').classList.add('show');
+  $('emptyPM').textContent = $('emptyClimate').textContent = $('emptyCO2').textContent = 'Grafik tidak dapat dimuat. Periksa koneksi internet lalu muat ulang halaman.';
+  $('emptyPM').classList.add('show'); $('emptyClimate').classList.add('show'); $('emptyCO2').classList.add('show');
 }
 
 /* Buka tab sesuai hash URL. Harus paling akhir: goToPage memakai chartPM/chartClimate
