@@ -1,0 +1,6 @@
+[Unit]
+Description=SmartLab - cek koneksi jaringan Raspi
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash /home/pi/smartlab/raspberry_pi/net_watchdog.sh

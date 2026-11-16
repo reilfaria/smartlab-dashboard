@@ -20,6 +20,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+import json
 import time
 import threading
 from datetime import datetime, timezone
@@ -45,10 +46,70 @@ LOG_INTERVAL_SEC = env("LOG_INTERVAL_SEC", "600", int)  # 600s = 10 menit
 # jadi kalau satu ESP32 mati, yang lain tetap tampil normal.
 STALE_AFTER_SEC = 30
 
+# ---- watchdog: supaya Raspi tidak "nyangkut offline" sampai harus di-restart manual ----
+# Kalau upsert gagal terus selama RECONNECT_AFTER_SEC -> koneksi Supabase dibuat ulang.
+# Kalau tetap tidak ada upsert sukses selama EXIT_AFTER_SEC (termasuk kalau request
+# macet/hang) -> proses keluar, lalu systemd (Restart=always) menyalakannya lagi.
+RECONNECT_AFTER_SEC = env("RECONNECT_AFTER_SEC", "120", int)
+EXIT_AFTER_SEC = env("EXIT_AFTER_SEC", "600", int)
+HTTP_TIMEOUT_SEC = 15
+
+# Log 10-menit yang gagal terkirim (internet putus) disimpan di sini lalu dikirim
+# ulang saat koneksi kembali, supaya grafik & laporan AC tidak bolong.
+PENDING_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "pending_logs.json")
+PENDING_MAX = 1000  # +-1 minggu log 10-menit
+
 if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     raise SystemExit("SUPABASE_URL / SUPABASE_SERVICE_KEY belum di-set (isi file .env)")
 
-supabase = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+def make_client():
+    try:
+        from supabase.lib.client_options import ClientOptions
+        return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY,
+                             options=ClientOptions(postgrest_client_timeout=HTTP_TIMEOUT_SEC))
+    except Exception as e:  # versi library lain: tetap jalan tanpa opsi timeout
+        print("[supabase] ClientOptions tidak dipakai:", e, flush=True)
+        return create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+
+supabase = make_client()
+client_lock = threading.Lock()
+sb_health = {"last_ok": time.time(), "last_reconnect": time.time()}
+
+
+def reconnect_if_needed():
+    global supabase
+    now = time.time()
+    if now - sb_health["last_ok"] > RECONNECT_AFTER_SEC and now - sb_health["last_reconnect"] > RECONNECT_AFTER_SEC:
+        print("[watchdog] upsert gagal terus, buat ulang koneksi Supabase", flush=True)
+        with client_lock:
+            supabase = make_client()
+        sb_health["last_reconnect"] = now
+
+
+def watchdog_loop():
+    while True:
+        time.sleep(30)
+        age = time.time() - sb_health["last_ok"]
+        if age > EXIT_AFTER_SEC:
+            print(f"[watchdog] {int(age)} detik tanpa upsert sukses, keluar supaya di-restart systemd", flush=True)
+            os._exit(1)
+
+
+def load_pending():
+    try:
+        with open(PENDING_FILE, encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, ValueError):
+        return []
+
+
+def save_pending(rows):
+    tmp = PENDING_FILE + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(rows[-PENDING_MAX:], f)
+    os.replace(tmp, PENDING_FILE)
 
 # ================= STATE BERSAMA (thread-safe) =================
 state_lock = threading.Lock()
@@ -154,9 +215,13 @@ def live_loop():
         }
 
         try:
-            supabase.table("live_readings").upsert(payload).execute()
+            with client_lock:
+                client = supabase
+            client.table("live_readings").upsert(payload).execute()
+            sb_health["last_ok"] = time.time()
         except Exception as e:
-            print("[live_loop] gagal upsert ke Supabase:", e)
+            print("[live_loop] gagal upsert ke Supabase:", e, flush=True)
+            reconnect_if_needed()
 
         with state_lock:
             shared_state["last_full_reading"] = payload
@@ -184,15 +249,22 @@ def log_loop():
             "temp_out": last["temp_out"],
             "hum_out": last["hum_out"],
         }
+        pending = load_pending()
+        pending.append(log_payload)
         try:
-            supabase.table("sensor_logs").insert(log_payload).execute()
-            print("[log_loop] log tersimpan:", log_payload["recorded_at"])
+            with client_lock:
+                client = supabase
+            client.table("sensor_logs").insert(pending).execute()
+            print(f"[log_loop] {len(pending)} log tersimpan, terakhir {log_payload['recorded_at']}", flush=True)
+            pending = []
         except Exception as e:
-            print("[log_loop] gagal insert log:", e)
+            print(f"[log_loop] gagal insert log ({len(pending)} antre, dikirim ulang nanti):", e, flush=True)
+        save_pending(pending)
 
 
 if __name__ == "__main__":
     threading.Thread(target=live_loop, daemon=True).start()
     threading.Thread(target=log_loop, daemon=True).start()
+    threading.Thread(target=watchdog_loop, daemon=True).start()
     # host 0.0.0.0 supaya kedua ESP32 di jaringan yang sama bisa akses
     app.run(host="0.0.0.0", port=5000)

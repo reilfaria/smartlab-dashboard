@@ -197,6 +197,58 @@ button { font-family: inherit; }
 .chart-empty { position: absolute; inset: 0; display: none; align-items: center; justify-content: center; text-align: center; color: var(--ink-soft); font-size: .86rem; padding: 0 20px; }
 .chart-empty.show { display: flex; }
 
+/* ---------- LAPORAN AC ---------- */
+.ac-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.weeknav { display: inline-flex; align-items: center; gap: 6px; background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 4px; }
+.weeknav button { border: 0; background: transparent; width: 34px; height: 34px; border-radius: 50%; cursor: pointer; color: var(--ink); font-size: 1rem; }
+.weeknav button:hover:not(:disabled) { background: var(--blue-wash); color: var(--blue); }
+.weeknav button:disabled { opacity: .3; cursor: default; }
+.weeknav span { font-weight: 600; font-size: .86rem; padding: 0 6px; min-width: 15ch; text-align: center; }
+.ac-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.report { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-lg); padding: 28px; }
+.report-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+.report-head .rb { display: flex; gap: 12px; align-items: center; }
+.report-head img { width: 44px; height: 44px; object-fit: contain; }
+.report-head h2 { font-size: 1.35rem; }
+.report-head p { font-size: .84rem; color: var(--ink-soft); }
+.report-rule { text-align: right; font-size: .82rem; color: var(--ink-soft); }
+.report-rule b { display: block; font-family: var(--display); font-size: 1.05rem; color: var(--ink); }
+.ac-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+.ac-stat { border: 1px solid var(--line); border-radius: var(--r-md); padding: 14px 16px; }
+.ac-stat .l { font-size: .78rem; font-weight: 600; color: var(--ink-soft); }
+.ac-stat .v { font-family: var(--display); font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+.ac-stat .v small { font-family: var(--body); font-size: .8rem; color: var(--ink-soft); font-weight: 600; margin-left: 3px; }
+.ac-stat.good .v { color: var(--ok); }
+.ac-stat.bad .v { color: var(--bad); }
+.report h3 { font-size: 1rem; margin: 22px 0 10px; }
+.timeline svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: .76rem; color: var(--ink-soft); margin-top: 6px; }
+.legend i { display: inline-block; width: 14px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: middle; }
+.ac-table { width: 100%; border-collapse: collapse; font-size: .86rem; }
+.ac-table th { text-align: left; font-size: .76rem; color: var(--ink-soft); font-weight: 600; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.ac-table td { padding: 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ac-table tr:last-child td { border-bottom: 0; }
+.ac-table .badge { margin: 0; display: inline-block; white-space: nowrap; }
+.ac-table .note { font-size: .76rem; color: var(--bad); margin-top: 2px; }
+.ac-chart { position: relative; height: 240px; }
+.report-foot { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); font-size: .76rem; color: var(--ink-soft); }
+.ac-msg { padding: 40px 0; text-align: center; color: var(--ink-soft); }
+@media (max-width: 760px) {
+  .ac-stats { grid-template-columns: 1fr 1fr; }
+  .report { padding: 18px; }
+  .report-rule { text-align: left; }
+  .ac-table th:nth-child(3), .ac-table td:nth-child(3) { display: none; }
+}
+@media print {
+  @page { size: A4 portrait; margin: 12mm; }
+  body { background: #fff; }
+  .site-head, .footer, .ac-bar, .page:not(#page-ac) { display: none !important; }
+  #page-ac { display: block !important; }
+  .shell { padding: 0; max-width: none; }
+  .report { border: 0; padding: 0; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
 .footer { text-align: center; padding-top: 40px; color: var(--ink-soft); font-size: .8rem; }
 
 @media (max-width: 960px) {
@@ -243,6 +295,7 @@ button { font-family: inherit; }
       <nav class="tabs" role="tablist" aria-label="Halaman">
         <button role="tab" class="nav-btn" data-page="home" aria-selected="true">Beranda</button>
         <button role="tab" class="nav-btn" data-page="smartlab" aria-selected="false">SmartLab</button>
+        <button role="tab" class="nav-btn" data-page="ac" aria-selected="false">Laporan AC</button>
       </nav>
     </div>
   </header>
@@ -395,6 +448,49 @@ button { font-family: inherit; }
         </div>
       </div>
     </section>
+
+    <!-- ---------- LAPORAN AC ---------- -->
+    <section id="page-ac" class="page" role="tabpanel">
+      <div class="ac-bar">
+        <div class="weeknav" role="group" aria-label="Pilih minggu">
+          <button type="button" id="acPrev" aria-label="Minggu sebelumnya">&#8249;</button>
+          <span id="acWeekLabel">—</span>
+          <button type="button" id="acNext" aria-label="Minggu berikutnya">&#8250;</button>
+        </div>
+        <div class="ac-actions">
+          <button class="btn btn-line" type="button" onclick="window.print()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4v-7h16v7h-2M7 14h10v7H7z"/></svg>
+            Cetak / PDF
+          </button>
+          <button class="btn btn-solid" type="button" id="acPngBtn" onclick="downloadACPng()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16"/></svg>
+            <span id="acPngLabel">Unduh gambar (PNG)</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="report" id="acReport">
+        <div class="report-head">
+          <div class="rb">
+            <img src="assets/untirta.webp" alt="" onerror="this.style.display='none'">
+            <div>
+              <h2>Laporan Pemakaian AC</h2>
+              <p>Lab APEL, Teknik Elektro UNTIRTA · <span id="acPeriod">—</span></p>
+            </div>
+          </div>
+          <div class="report-rule">Aturan lab<b>AC menyala 08.00–16.00</b></div>
+        </div>
+
+        <div id="acBody"><p class="ac-msg">Memuat data…</p></div>
+
+        <div class="report-foot">
+          Status AC diperkirakan dari perubahan suhu dalam ruang: suhu turun cepat hingga di bawah 28 °C berarti AC dinyalakan, suhu naik cepat atau kembali di atas 28 °C berarti AC dimatikan.
+          Data dicatat tiap 10 menit sehingga jam nyala/mati memiliki ketelitian sekitar ±10 menit, dan toleransi 15 menit dipakai sebelum dihitung sebagai pelanggaran.
+          Saat perangkat offline (abu-abu) status AC tidak diketahui sehingga tidak dihitung sebagai pelanggaran.
+          <span id="acGenerated"></span>
+        </div>
+      </div>
+    </section>
   </main>
 
   <footer class="footer">© 2026 Laboratorium APEL, Teknik Elektro, Fakultas Teknik UNTIRTA</footer>
@@ -450,6 +546,7 @@ function goToPage(page, { scroll = true } = {}) {
   document.querySelectorAll('.nav-btn').forEach(b => b.setAttribute('aria-selected', String(b.dataset.page === page)));
   try { history.replaceState(null, '', page === 'home' ? location.pathname + location.search : '#' + page); } catch (_) {}
   if (scroll) window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (page === 'ac') loadACReport();
   if (page === 'smartlab') { chartPM && chartPM.resize(); chartClimate && chartClimate.resize(); chartCO2 && chartCO2.resize(); }
 }
 document.querySelectorAll('.nav-btn').forEach(btn => btn.addEventListener('click', () => goToPage(btn.dataset.page)));
@@ -773,6 +870,378 @@ async function downloadCSV() {
   }
 }
 
+/* ================= LAPORAN AC MINGGUAN =================
+   AC dianggap NYALA saat suhu dalam turun >= AC_DROP_C dalam AC_WINDOW_MIN menit,
+   dan MATI saat suhu dalam naik >= AC_RISE_C dalam AC_WINDOW_MIN menit.
+   Angka ambang bisa disetel di sini kalau hasil deteksi kurang pas. */
+const AC_START_MIN  = 8 * 60;    // 08.00
+const AC_END_MIN    = 16 * 60;   // 16.00
+const AC_TOL_MIN    = 15;        // toleransi sebelum dihitung melanggar
+const AC_WINDOW_MIN = 30;
+const AC_DROP_C     = 1.0;
+const AC_RISE_C     = 1.0;
+const AC_ON_MAX_C   = 28.0;      // AC hanya dianggap nyala kalau suhu dalam di bawah ini
+                                 // (penurunan suhu malam hari di atas 28 °C bukan karena AC)
+const AC_GAP_MIN    = 40;        // jeda log lebih dari ini = data terputus (perangkat offline)
+const AC_RESUME_MAX_MIN = 180;   // setelah offline <= ini, AC boleh dianggap masih nyala kalau suhu masih di level AC
+
+const BULAN_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+const HARI_PENDEK = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const MS_MIN = 60000;
+
+function mondayOf(d) { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - (x.getDay() + 6) % 7); return x; }
+function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
+function tglPanjang(d) { return `${HARI_ID[d.getDay()]}, ${d.getDate()} ${BULAN_ID[d.getMonth()]} ${d.getFullYear()}`; }
+function hhmm(d) { return pad(d.getHours()) + '.' + pad(d.getMinutes()); }
+function durText(min) {
+  min = Math.round(min);
+  const h = Math.floor(min / 60), m = min % 60;
+  if (!h) return m + ' mnt';
+  return m ? `${h} j ${m} mnt` : `${h} jam`;
+}
+function overlap(a1, a2, b1, b2) { return Math.max(0, Math.min(a2, b2) - Math.max(a1, b1)); }
+
+let acWeekStart = mondayOf(new Date());
+let acChart = null;
+let acBusy = false;
+
+async function fetchACLogs(from, to) {
+  let all = [], off = 0;
+  while (true) {
+    const { data, error } = await sb
+      .from('sensor_logs')
+      .select('recorded_at, temp_in, temp_out')
+      .gte('recorded_at', from.toISOString())
+      .lt('recorded_at', to.toISOString())
+      .order('recorded_at', { ascending: true })
+      .range(off, off + 999);
+    if (error) throw error;
+    all = all.concat(data || []);
+    if (!data || data.length < 1000) break;
+    off += 1000;
+  }
+  return all.map(r => ({
+    t: new Date(r.recorded_at),
+    tin: r.temp_in == null ? null : Number(r.temp_in),
+    tout: r.temp_out == null ? null : Number(r.temp_out)
+  }));
+}
+
+// mundur ke titik saat suhu mulai turun (dir -1) / mulai naik (dir +1)
+function turnPoint(pts, i, dir) {
+  let k = i;
+  while (k > 0 && (pts[k].tin - pts[k - 1].tin) * dir > 0.15 && (pts[i].t - pts[k - 1].t) <= 90 * MS_MIN) k--;
+  return pts[k].t;
+}
+
+// hasil: { intervals: [{start, end|null}], gaps: [{start, end}] }
+// end null = masih nyala sampai sekarang. gaps = rentang perangkat offline / suhu tidak terbaca.
+function detectAC(rows, from, until) {
+  const pts = rows.filter(r => r.tin != null);
+  const intervals = [], gaps = [];
+  const GAP = AC_GAP_MIN * MS_MIN;
+  if (!pts.length) { gaps.push({ start: from, end: until }); return { intervals, gaps }; }
+  if (pts[0].t - from > GAP) gaps.push({ start: from, end: pts[0].t });
+
+  let on = false, onAt = null, j = 0;
+  // resumeIdx: titik awal setelah offline. Kalau sejak itu suhu datar lalu naik cepat
+  // (tanda AC dimatikan), berarti AC sudah nyala sejak perangkat online -> dicatat "tidak pasti".
+  let resumeIdx = 0;
+  for (let i = 1; i < pts.length; i++) {
+    const dt = pts[i].t - pts[i - 1].t;
+    if (dt > GAP) {
+      gaps.push({ start: pts[i - 1].t, end: pts[i].t });
+      if (on) {
+        // AC hanya dihitung nyala sampai data terakhir sebelum offline, bukan selama offline
+        intervals.push({ start: onAt, end: pts[i - 1].t });
+        // setelah data kembali, AC dianggap masih nyala hanya kalau offline-nya singkat
+        // dan suhu masih di level AC; kalau tidak, mulai lagi dari status mati
+        on = dt <= AC_RESUME_MAX_MIN * MS_MIN && pts[i].tin <= pts[i - 1].tin + AC_RISE_C && pts[i].tin < AC_ON_MAX_C;
+        onAt = on ? pts[i].t : null;
+        resumeIdx = on ? -1 : i;
+      } else {
+        const keep = resumeIdx >= 0 && dt <= AC_RESUME_MAX_MIN * MS_MIN && pts[i].tin <= pts[i - 1].tin + AC_RISE_C;
+        if (!keep) resumeIdx = i;
+      }
+      j = i;
+      continue;
+    }
+    while (pts[i].t - pts[j].t > AC_WINDOW_MIN * MS_MIN) j++;
+    if (j === i) continue;
+    const d = pts[i].tin - pts[j].tin;
+    if (!on && d <= -AC_DROP_C && pts[i].tin < AC_ON_MAX_C) { on = true; onAt = turnPoint(pts, i, -1); resumeIdx = -1; }
+    else if (on && (d >= AC_RISE_C || pts[i].tin >= AC_ON_MAX_C)) { on = false; intervals.push({ start: onAt, end: turnPoint(pts, i, +1) }); }
+    else if (!on && d >= AC_RISE_C && resumeIdx >= 0) {
+      const endT = turnPoint(pts, i, +1);
+      const flat = pts.slice(resumeIdx, i).filter(p => p.t <= endT).map(p => p.tin);
+      // suhu stabil (rentang <= 1 °C) minimal 20 menit = ciri ruangan yang dijaga AC
+      if (flat.length >= 3 && Math.max(...flat) - Math.min(...flat) <= 1.0 && Math.max(...flat) < AC_ON_MAX_C)
+        intervals.push({ start: pts[resumeIdx].t, end: endT, uncertain: true });
+      resumeIdx = -1;
+    }
+  }
+  const last = pts[pts.length - 1].t;
+  const stale = until - last > GAP;
+  if (on) intervals.push({ start: onAt, end: stale ? last : null });
+  if (stale) gaps.push({ start: last, end: until });
+  return { intervals, gaps };
+}
+
+function summarizeDays(weekStart, rows, intervals, gaps) {
+  const now = new Date();
+  const days = [];
+  for (let n = 0; n < 7; n++) {
+    const d0 = addDays(weekStart, n), d1 = addDays(weekStart, n + 1);
+    const dEnd = Math.min(d1, now);
+    const inDay = rows.filter(r => r.t >= d0 && r.t < d1 && r.tin != null);
+    const day = { date: d0, segs: [], gapSegs: [], onMin: 0, outMin: 0, gapMin: 0 };
+    if (d0 > now) { day.status = 'future'; days.push(day); continue; }
+
+    for (const iv of intervals) {
+      const s = iv.start, e = iv.end || now;
+      if (e <= d0 || s >= d1) continue;
+      const cs = Math.max(s, d0), ce = Math.min(e, d1);
+      const a = (cs - d0) / MS_MIN, b = (ce - d0) / MS_MIN;      // menit sejak 00.00
+      day.segs.push({ a, b, fromPrev: s < d0, toNext: e > d1, ongoing: !iv.end && d1 > now, uncertain: !!iv.uncertain });
+      day.onMin += b - a;
+      if (!iv.uncertain) day.outMin += overlap(a, b, 0, AC_START_MIN - AC_TOL_MIN) + overlap(a, b, AC_END_MIN + AC_TOL_MIN, 1440);
+    }
+    for (const g of gaps) {
+      const a = Math.max(g.start, d0), b = Math.min(g.end, dEnd);
+      if (b <= a) continue;
+      day.gapSegs.push({ a: (a - d0) / MS_MIN, b: (b - d0) / MS_MIN });
+      day.gapMin += (b - a) / MS_MIN;
+    }
+    if (!inDay.length) day.status = 'nodata';
+    else if (day.outMin > 0) day.status = 'bad';
+    else if (day.gapMin >= 60) day.status = 'partial';
+    else if (!day.segs.length) day.status = 'off';
+    else day.status = 'ok';
+    days.push(day);
+  }
+  return days;
+}
+
+const AC_STATUS = {
+  ok:     { text: 'Sesuai jadwal', cls: 'good' },
+  bad:    { text: 'Di luar jadwal', cls: 'bad' },
+  off:    { text: 'AC tidak menyala', cls: '' },
+  partial: { text: 'Data tidak lengkap', cls: 'moderate' },
+  nodata: { text: 'Perangkat offline', cls: 'moderate' },
+  future: { text: 'Belum berlangsung', cls: '' }
+};
+
+function minToClock(m) { return m >= 1440 ? '24.00' : pad(Math.floor(m / 60)) + '.' + pad(Math.floor(m % 60)); }
+
+function segText(day) {
+  if (!day.segs.length) return '—';
+  return day.segs.map(s => (s.uncertain ? '~' : '') + (s.fromPrev ? '00.00' : minToClock(s.a)) + '–' + (s.ongoing ? 'sekarang (masih nyala)' : s.toNext ? '24.00' : minToClock(s.b))).join(', ');
+}
+
+function outsideNote(day) {
+  const parts = [];
+  for (const s of day.segs) {
+    if (s.uncertain) continue;
+    if (s.a < AC_START_MIN - AC_TOL_MIN) parts.push('nyala ' + (s.fromPrev ? 'sejak hari sebelumnya' : 'pukul ' + minToClock(s.a)));
+    if (s.b > AC_END_MIN + AC_TOL_MIN) parts.push(s.ongoing ? 'masih nyala lewat pukul 16.00' : s.toNext ? 'belum mati sampai tengah malam' : 'mati pukul ' + minToClock(s.b));
+  }
+  return parts.join(', ');
+}
+
+// timeline 7 hari, warna pakai hex (bukan var CSS) supaya ikut terekam di PNG
+function timelineSVG(days) {
+  const L = 92, W = 1000, R = 12, rowH = 30, top = 26, plotW = W - L - R;
+  const x = m => L + m / 1440 * plotW;
+  const H = top + days.length * rowH + 4;
+  let g = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" font-family="Instrument Sans, system-ui, sans-serif">`;
+  g += `<rect x="${x(AC_START_MIN)}" y="${top - 6}" width="${x(AC_END_MIN) - x(AC_START_MIN)}" height="${days.length * rowH + 6}" fill="#e3f3ea" rx="4"/>`;
+  for (let hgt = 0; hgt <= 24; hgt += 2) {
+    g += `<line x1="${x(hgt * 60)}" x2="${x(hgt * 60)}" y1="${top - 6}" y2="${H - 2}" stroke="#e1e5f0" stroke-width="1"/>`;
+    if (hgt % 4 === 0) g += `<text x="${x(hgt * 60)}" y="12" font-size="12" fill="#5b6180" text-anchor="${hgt === 24 ? 'end' : hgt === 0 ? 'start' : 'middle'}">${pad(hgt)}.00</text>`;
+  }
+  days.forEach((d, i) => {
+    const y = top + i * rowH;
+    g += `<text x="0" y="${y + 17}" font-size="13" font-weight="600" fill="#101426">${HARI_PENDEK[d.date.getDay()]} <tspan font-weight="400" fill="#5b6180">${d.date.getDate()} ${BULAN_ID[d.date.getMonth()]}</tspan></text>`;
+    g += `<rect x="${L}" y="${y + 6}" width="${plotW}" height="14" rx="4" fill="${d.status === 'future' ? '#f3f5fa' : '#eef0f6'}"/>`;
+    for (const s of d.gapSegs) g += `<rect x="${x(s.a)}" y="${y + 6}" width="${Math.max(2, x(s.b) - x(s.a))}" height="14" rx="3" fill="#cdd2e1"/>`;
+    if (d.status === 'future' || d.status === 'nodata') {
+      g += `<text x="${L + plotW / 2}" y="${y + 17}" font-size="11" fill="${d.status === 'nodata' ? '#5b6180' : '#9aa0b8'}" text-anchor="middle">${AC_STATUS[d.status].text.toLowerCase()}</text>`;
+      return;
+    }
+    for (const s of d.segs) {
+      if (s.uncertain) { g += `<rect x="${x(s.a)}" y="${y + 6}" width="${Math.max(2, x(s.b) - x(s.a))}" height="14" rx="3" fill="#8f9ad6"/>`; continue; }
+      const pieces = [
+        [s.a, Math.min(s.b, AC_START_MIN - AC_TOL_MIN), '#b83b3b'],
+        [Math.max(s.a, AC_START_MIN - AC_TOL_MIN), Math.min(s.b, AC_END_MIN + AC_TOL_MIN), '#273992'],
+        [Math.max(s.a, AC_END_MIN + AC_TOL_MIN), s.b, '#b83b3b']
+      ];
+      for (const [a, b, c] of pieces) if (b > a) g += `<rect x="${x(a)}" y="${y + 6}" width="${Math.max(2, x(b) - x(a))}" height="14" rx="3" fill="${c}"/>`;
+    }
+  });
+  return g + '</svg>';
+}
+
+function renderACReport(days, weekRows, intervals) {
+  const ran = days.filter(d => d.status !== 'future' && d.status !== 'nodata');
+  const okDays = days.filter(d => d.status === 'ok').length;
+  const badDays = days.filter(d => d.status === 'bad').length;
+  const onMin = days.reduce((s, d) => s + d.onMin, 0);
+  const outMin = days.reduce((s, d) => s + d.outMin, 0);
+
+  if (!ran.length) {
+    $('acBody').innerHTML = '<p class="ac-msg">Belum ada data suhu untuk minggu ini.</p>';
+    return;
+  }
+
+  let rowsHtml = '';
+  for (const d of days) {
+    const st = AC_STATUS[d.status];
+    let note = d.status === 'bad' ? `<div class="note">${outsideNote(d)}</div>` : '';
+    if (d.gapMin >= 10 && d.status !== 'nodata') note += `<div class="note" style="color:#98650f">perangkat offline ${durText(d.gapMin)}</div>`;
+    rowsHtml += `<tr>
+      <td><b>${HARI_ID[d.date.getDay()]}</b><br><span style="color:#5b6180;font-size:.78rem">${d.date.getDate()} ${BULAN_ID[d.date.getMonth()]}</span></td>
+      <td class="num">${d.status === 'future' ? '—' : segText(d)}${note}</td>
+      <td class="num">${d.onMin ? durText(d.onMin) : '—'}</td>
+      <td><span class="badge ${st.cls}">${st.text}</span></td>
+    </tr>`;
+  }
+
+  $('acBody').innerHTML = `
+    <div class="ac-stats">
+      <div class="ac-stat good"><div class="l">Hari sesuai jadwal</div><div class="v num">${okDays}<small>/ ${ran.length} hari</small></div></div>
+      <div class="ac-stat ${badDays ? 'bad' : ''}"><div class="l">Hari melanggar jadwal</div><div class="v num">${badDays}<small>hari</small></div></div>
+      <div class="ac-stat"><div class="l">Total AC menyala</div><div class="v num">${(onMin / 60).toFixed(1)}<small>jam</small></div></div>
+      <div class="ac-stat ${outMin ? 'bad' : ''}"><div class="l">Nyala di luar jadwal</div><div class="v num">${(outMin / 60).toFixed(1)}<small>jam</small></div></div>
+    </div>
+    <h3>Jam AC menyala</h3>
+    <div class="timeline">${timelineSVG(days)}</div>
+    <div class="legend">
+      <span><i style="background:#e3f3ea"></i>Jam yang diizinkan (08.00–16.00)</span>
+      <span><i style="background:#273992"></i>AC nyala, sesuai jadwal</span>
+      <span><i style="background:#b83b3b"></i>AC nyala di luar jadwal</span>
+      <span><i style="background:#8f9ad6"></i>AC sudah nyala saat perangkat kembali online (~)</span>
+      <span><i style="background:#cdd2e1"></i>Perangkat offline, status AC tidak diketahui</span>
+    </div>
+    <h3>Rincian per hari</h3>
+    <table class="ac-table">
+      <thead><tr><th>Hari</th><th>AC nyala (perkiraan)</th><th>Durasi</th><th>Status</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <h3>Suhu dalam dan luar ruang</h3>
+    <div class="ac-chart"><canvas id="acChartCanvas" aria-label="Grafik suhu satu minggu" role="img"></canvas></div>`;
+
+  drawACChart(weekRows);
+}
+
+function drawACChart(rawRows) {
+  if (typeof Chart === 'undefined') return;
+  const rows = [];
+  rawRows.forEach((r, i) => {
+    if (i && r.t - rawRows[i - 1].t > AC_GAP_MIN * MS_MIN) rows.push({ t: new Date(rawRows[i - 1].t.getTime() + 10 * MS_MIN), tin: null, tout: null });
+    rows.push(r);
+  });
+  if (acChart) { acChart.destroy(); acChart = null; }
+  const labels = rows.map(r => r.t);
+  const shade = {
+    id: 'acShade',
+    beforeDatasetsDraw(chart) {
+      const { ctx, chartArea: a, scales: { x } } = chart;
+      ctx.save();
+      ctx.fillStyle = 'rgba(35,128,90,.08)';
+      for (let n = 0; n < 7; n++) {
+        const s = addDays(acWeekStart, n).getTime() + AC_START_MIN * MS_MIN;
+        const e = addDays(acWeekStart, n).getTime() + AC_END_MIN * MS_MIN;
+        let i1 = labels.findIndex(t => t >= s), i2 = -1;
+        for (let k = labels.length - 1; k >= 0; k--) if (labels[k] <= e) { i2 = k; break; }
+        if (i1 < 0 || i2 < i1) continue;
+        const x1 = x.getPixelForValue(i1), x2 = x.getPixelForValue(i2);
+        ctx.fillRect(x1, a.top, x2 - x1, a.bottom - a.top);
+      }
+      ctx.restore();
+    }
+  };
+  acChart = new Chart($('acChartCanvas'), {
+    type: 'line',
+    data: {
+      labels: labels.map(t => t.getTime()),
+      datasets: [
+        { label: 'Suhu dalam (°C)', data: rows.map(r => r.tin), borderColor: '#273992', borderWidth: 2, tension: .3, pointRadius: 0 },
+        { label: 'Suhu luar (°C)', data: rows.map(r => r.tout), borderColor: '#c9762f', borderDash: [6, 4], borderWidth: 1.6, tension: .3, pointRadius: 0 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false, animation: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { usePointStyle: true, pointStyle: 'line', boxWidth: 24, font: { size: 12 } } },
+        tooltip: { backgroundColor: '#101426', callbacks: { title: it => it.length ? tglPanjang(new Date(it[0].label * 1)) + ' ' + hhmm(new Date(it[0].label * 1)) : '' } }
+      },
+      scales: {
+        x: {
+          grid: { display: false }, border: { display: false },
+          ticks: {
+            autoSkip: false, maxRotation: 0, font: { size: 11 },
+            callback(v, i) {
+              const t = labels[i], p = labels[i - 1];
+              return (!p || t.getDate() !== p.getDate()) ? HARI_PENDEK[t.getDay()] + ' ' + t.getDate() : '';
+            }
+          }
+        },
+        y: { grid: { color: '#e9ecf4' }, border: { display: false }, ticks: { font: { size: 11 } } }
+      }
+    },
+    plugins: [shade]
+  });
+}
+
+async function loadACReport() {
+  if (acBusy) return;
+  acBusy = true;
+  const start = acWeekStart, end = addDays(start, 7);
+  $('acWeekLabel').textContent = `${start.getDate()} ${BULAN_ID[start.getMonth()]} – ${addDays(start, 6).getDate()} ${BULAN_ID[addDays(start, 6).getMonth()]}`;
+  $('acPeriod').textContent = tglPanjang(start) + ' – ' + tglPanjang(addDays(start, 6));
+  $('acNext').disabled = start >= mondayOf(new Date());
+  $('acBody').innerHTML = '<p class="ac-msg">Memuat data…</p>';
+  try {
+    const rows = await fetchACLogs(addDays(start, -1), end);  // ikut ambil 1 hari sebelumnya untuk status awal AC
+    const until = new Date(Math.min(end, Date.now()));
+    const { intervals, gaps } = detectAC(rows, addDays(start, -1), until);
+    const weekRows = rows.filter(r => r.t >= start && r.t < end);
+    renderACReport(summarizeDays(start, rows, intervals, gaps), weekRows, intervals);
+    $('acGenerated').textContent = ' Dibuat ' + tglPanjang(new Date()) + ' pukul ' + hhmm(new Date()) + '.';
+  } catch (e) {
+    console.error(e);
+    $('acBody').innerHTML = '<p class="ac-msg">Data tidak dapat diambil dari Supabase. Periksa koneksi lalu muat ulang halaman.</p>';
+  } finally {
+    acBusy = false;
+  }
+}
+
+$('acPrev').addEventListener('click', () => { acWeekStart = addDays(acWeekStart, -7); loadACReport(); });
+$('acNext').addEventListener('click', () => { acWeekStart = addDays(acWeekStart, 7); loadACReport(); });
+
+function loadScript(src) {
+  return new Promise((res, rej) => { const s = document.createElement('script'); s.src = src; s.onload = res; s.onerror = rej; document.head.appendChild(s); });
+}
+async function downloadACPng() {
+  const btn = $('acPngBtn'), label = $('acPngLabel');
+  btn.disabled = true; label.textContent = 'Menyiapkan gambar…';
+  try {
+    if (typeof html2canvas === 'undefined') await loadScript('https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js');
+    const canvas = await html2canvas($('acReport'), { scale: 2, backgroundColor: '#ffffff', useCORS: true });
+    const a = document.createElement('a');
+    const s = acWeekStart;
+    a.download = `laporan_ac_lab_apel_${s.getFullYear()}-${pad(s.getMonth() + 1)}-${pad(s.getDate())}.png`;
+    a.href = canvas.toDataURL('image/png');
+    a.click();
+  } catch (e) {
+    console.error(e);
+    alert('Gambar gagal dibuat. Coba tombol Cetak / PDF, atau screenshot laporan secara manual.');
+  } finally {
+    btn.disabled = false; label.textContent = 'Unduh gambar (PNG)';
+  }
+}
+
 /* ---------------- init ----------------
    Urutan sengaja: angka sensor & polling jalan DULUAN, baru grafik.
    Kalau Chart.js gagal dimuat (mis. CDN diblokir jaringan), itu tidak boleh
@@ -795,7 +1264,7 @@ try {
 /* Buka tab sesuai hash URL. Harus paling akhir: goToPage memakai chartPM/chartClimate
    yang dideklarasi dengan `let` di atas. Kalau dipanggil sebelum itu, skrip berhenti
    dengan ReferenceError dan status tersangkut di "Menghubungkan". */
-if (location.hash === '#smartlab') goToPage('smartlab', { scroll: false });
+if (location.hash === '#smartlab' || location.hash === '#ac') goToPage(location.hash.slice(1), { scroll: false });
 </script>
 </body>
 </html>
